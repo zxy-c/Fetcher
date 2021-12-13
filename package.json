@@ -1,0 +1,33 @@
+{
+  "name": "fetcher",
+  "version": "0.0.1",
+  "description": "Http Request Library(Basics on fetch api)",
+  "main": "/dist/index.js",
+  "scripts": {
+    "test": "mocha",
+    "build": "tsc"
+  },
+  "keywords": [
+    "fetch",
+    "http",
+    "xhr"
+  ],
+  "author": "zxy",
+  "license": "ISC",
+  "dependencies": {
+    "@types/qs": "^6.9.7",
+    "cancelable-promise": "^4.2.1",
+    "qs": "^6.10.2",
+    "typescript": "^4.5.3"
+  },
+  "devDependencies": {
+    "@types/assert": "^1.5.6",
+    "@types/mocha": "latest",
+    "assert": "^2.0.0",
+    "mocha": "latest",
+    "ts-node": "^10.4.0"
+  },
+  "engines": {
+    "node": ">=10.0.0"
+  }
+}
