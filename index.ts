@@ -123,14 +123,8 @@ export default class Fetcher {
         const timeout = options?.timeout ?? this.timeout;
 
         const abortController = new AbortController();
-        let timeoutTimeout: NodeJS.Timeout | null = null
-        if (timeout <= 0) {
-            // Never timeout if timeout is zero
-            timeoutTimeout = setTimeout(() => {
-                abortController.abort()
-                throw "timeout"
-            }, timeout)
-        }
+
+
         const baseUrl = this.baseUrl ?? ""
         url = baseUrl.replace(/\/$/, "") + "/" + url.replace(/^\//, "")
         const paramString = paramsSerializer(params);
@@ -139,9 +133,23 @@ export default class Fetcher {
         for (let requestInterceptor of this.requestInterceptors) {
             request = requestInterceptor(request)
         }
+        if (abortController.signal.aborted) {
+            throw CancelablePromise.reject("canceled")
+        }
         return new CancelablePromise<R>((resolve, reject, onCancel) => {
-            onCancel(() => abortController.abort())
-            fetch(request.url, request).then(fetchResponse => {
+            let timeoutTimeout: NodeJS.Timeout | null = null
+            if (timeout >= 0) {
+                // Never timeout if timeout is zero
+                timeoutTimeout = setTimeout(() => {
+                    abortController.abort()
+                    reject ("timeout")
+                }, timeout)
+            }
+            onCancel(() => {
+                abortController.abort();
+                timeoutTimeout&&clearTimeout(timeoutTimeout)
+            })
+            fetch(request.url, {...request,signal:abortController.signal}).then(fetchResponse => {
                 const status = fetchResponse.status
                 const responseType = options?.responseType;
                 let dataPromise: Promise<any>
