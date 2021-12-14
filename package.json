@@ -1,6 +1,6 @@
 {
   "name": "@zxy-cn/fetcher",
-  "version": "0.0.7",
+  "version": "0.0.9",
   "description": "Http Request Library(Basics on fetch api)",
   "main": "dist/index.js",
   "module": "dist/index.js",

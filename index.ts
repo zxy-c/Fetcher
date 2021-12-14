@@ -67,42 +67,42 @@ export default class Fetcher {
 
     // noinspection JSUnusedGlobalSymbols
     post<D = any, R = Response<D>>(url: string, params: RequestParams = {}, body?: any | null, options?: RequestOptions): CancelablePromise<R> {
-        return  this.execute(HttpMethod.POST, url, params, body, options)
+        return this.execute(HttpMethod.POST, url, params, body, options)
     }
 
     // noinspection JSUnusedGlobalSymbols
     put<D = any, R = Response<D>>(url: string, params: RequestParams = {}, body?: any | null, options?: RequestOptions): CancelablePromise<R> {
-        return  this.execute(HttpMethod.PUT, url, params, body, options)
+        return this.execute(HttpMethod.PUT, url, params, body, options)
     }
 
     // noinspection JSUnusedGlobalSymbols
     patch<D = any, R = Response<D>>(url: string, params: RequestParams = {}, body?: any | null, options?: RequestOptions): CancelablePromise<R> {
-        return  this.execute(HttpMethod.PATCH, url, params, body, options)
+        return this.execute(HttpMethod.PATCH, url, params, body, options)
     }
 
     // noinspection JSUnusedGlobalSymbols
     get<D = any, R = Response<D>>(url: string, params: RequestParams = {}, options?: RequestOptions): CancelablePromise<R> {
-        return  this.execute(HttpMethod.GET, url, params, null, options)
+        return this.execute(HttpMethod.GET, url, params, null, options)
     }
 
     // noinspection JSUnusedGlobalSymbols
     delete<D = any, R = Response<D>>(url: string, params: RequestParams = {}, options?: RequestOptions): CancelablePromise<R> {
-        return  this.execute(HttpMethod.DELETE, url, params, null, options)
+        return this.execute(HttpMethod.DELETE, url, params, null, options)
     }
 
     // noinspection JSUnusedGlobalSymbols
     head<D = any, R = Response<D>>(url: string, params: RequestParams = {}, options?: RequestOptions): CancelablePromise<R> {
-        return  this.execute(HttpMethod.HEAD, url, params, null, options)
+        return this.execute(HttpMethod.HEAD, url, params, null, options)
     }
 
     // noinspection JSUnusedGlobalSymbols
     trace<D = any, R = Response<D>>(url: string, params: RequestParams = {}, options?: RequestOptions): CancelablePromise<R> {
-        return  this.execute(HttpMethod.TRACE, url, params, null, options)
+        return this.execute(HttpMethod.TRACE, url, params, null, options)
     }
 
     // noinspection JSUnusedGlobalSymbols
     options<D = any, R = Response<D>>(url: string, params: RequestParams = {}, options?: RequestOptions): CancelablePromise<R> {
-        return  this.execute(HttpMethod.OPTIONS, url, params, null, options)
+        return this.execute(HttpMethod.OPTIONS, url, params, null, options)
     }
 
     execute<D = any, R = Response<D>>(method: HttpMethod = HttpMethod.GET, url: string, params: RequestParams = {}, body?: any | null, options?: RequestOptions): CancelablePromise<R> {
@@ -123,9 +123,10 @@ export default class Fetcher {
         const timeout = options?.timeout ?? this.timeout;
 
         const abortController = new AbortController();
+        let timeoutTimeout: NodeJS.Timeout | null = null
         if (timeout <= 0) {
             // Never timeout if timeout is zero
-            setTimeout(() => {
+            timeoutTimeout = setTimeout(() => {
                 abortController.abort()
                 throw "timeout"
             }, timeout)
@@ -139,35 +140,35 @@ export default class Fetcher {
             request = requestInterceptor(request)
         }
         return new CancelablePromise<R>((resolve, reject, onCancel) => {
-            onCancel(abortController.abort)
-            fetch(request.url, request).then(fetchResponse=>{
+            onCancel(() => abortController.abort())
+            fetch(request.url, request).then(fetchResponse => {
                 const status = fetchResponse.status
                 const responseType = options?.responseType;
                 let dataPromise: Promise<any>
                 if (responseType != null) {
                     switch (responseType) {
                         case ResponseType.JSON:
-                            dataPromise =  fetchResponse.json()
+                            dataPromise = fetchResponse.json()
                             break;
                         case ResponseType.FORM_DATA:
-                            dataPromise =  fetchResponse.formData()
+                            dataPromise = fetchResponse.formData()
                             break;
                         case ResponseType.TEXT:
-                            dataPromise =  fetchResponse.text()
+                            dataPromise = fetchResponse.text()
                             break;
                         case ResponseType.BLOB:
-                            dataPromise =  fetchResponse.blob()
+                            dataPromise = fetchResponse.blob()
                             break;
                         case ResponseType.ARRAY_BUFFER:
-                            dataPromise =  fetchResponse.arrayBuffer()
+                            dataPromise = fetchResponse.arrayBuffer()
                             break;
                     }
                 } else if (fetchResponse.headers.get("Content-Type")?.includes("json")) {
-                    dataPromise =  fetchResponse.json()
+                    dataPromise = fetchResponse.json()
                 } else {
-                    dataPromise =  fetchResponse.text()
+                    dataPromise = fetchResponse.text()
                 }
-                dataPromise.then(data=>{
+                dataPromise.then(data => {
                     if (fetchResponse.ok && status < 300 && status >= 200) {
                         const response = {
                             status,
@@ -191,6 +192,9 @@ export default class Fetcher {
                     }
                 }).catch(reject)
             }).catch(reject)
+                .finally(() => {
+                    timeoutTimeout && clearTimeout(timeoutTimeout)
+                })
         })
 
     }
