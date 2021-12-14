@@ -1,3 +1,5 @@
+import CancelablePromise from "cancelable-promise";
+
 const qs = require('qs');
 type ParamsSerializer = (params: RequestParams) => string;
 export type  FetcherOptions = FetcherCommonOptions & {
@@ -64,46 +66,46 @@ export default class Fetcher {
     }
 
     // noinspection JSUnusedGlobalSymbols
-    async post<D>(url: string, params: RequestParams = {}, body?: any | null, options?: RequestOptions): Promise<Response<D>> {
-        return await this.execute(HttpMethod.POST, url, params, body, options)
+    post<D = any, R = Response<D>>(url: string, params: RequestParams = {}, body?: any | null, options?: RequestOptions): CancelablePromise<R> {
+        return  this.execute(HttpMethod.POST, url, params, body, options)
     }
 
     // noinspection JSUnusedGlobalSymbols
-    async put<D>(url: string, params: RequestParams = {}, body?: any | null, options?: RequestOptions): Promise<Response<D>> {
-        return await this.execute(HttpMethod.PUT, url, params, body, options)
+    put<D = any, R = Response<D>>(url: string, params: RequestParams = {}, body?: any | null, options?: RequestOptions): CancelablePromise<R> {
+        return  this.execute(HttpMethod.PUT, url, params, body, options)
     }
 
     // noinspection JSUnusedGlobalSymbols
-    async patch<D>(url: string, params: RequestParams = {}, body?: any | null, options?: RequestOptions): Promise<Response<D>> {
-        return await this.execute(HttpMethod.PATCH, url, params, body, options)
+    patch<D = any, R = Response<D>>(url: string, params: RequestParams = {}, body?: any | null, options?: RequestOptions): CancelablePromise<R> {
+        return  this.execute(HttpMethod.PATCH, url, params, body, options)
     }
 
     // noinspection JSUnusedGlobalSymbols
-    async get<D>(url: string, params: RequestParams = {}, options?: RequestOptions): Promise<Response<D>> {
-        return await this.execute(HttpMethod.GET, url, params, null, options)
+    get<D = any, R = Response<D>>(url: string, params: RequestParams = {}, options?: RequestOptions): CancelablePromise<R> {
+        return  this.execute(HttpMethod.GET, url, params, null, options)
     }
 
     // noinspection JSUnusedGlobalSymbols
-    async delete<D>(url: string, params: RequestParams = {}, options?: RequestOptions): Promise<Response<D>> {
-        return await this.execute(HttpMethod.DELETE, url, params, null, options)
+    delete<D = any, R = Response<D>>(url: string, params: RequestParams = {}, options?: RequestOptions): CancelablePromise<R> {
+        return  this.execute(HttpMethod.DELETE, url, params, null, options)
     }
 
     // noinspection JSUnusedGlobalSymbols
-    async head<D>(url: string, params: RequestParams = {}, options?: RequestOptions): Promise<Response<D>> {
-        return await this.execute(HttpMethod.HEAD, url, params, null, options)
+    head<D = any, R = Response<D>>(url: string, params: RequestParams = {}, options?: RequestOptions): CancelablePromise<R> {
+        return  this.execute(HttpMethod.HEAD, url, params, null, options)
     }
 
     // noinspection JSUnusedGlobalSymbols
-    async trace<D>(url: string, params: RequestParams = {}, options?: RequestOptions): Promise<Response<D>> {
-        return await this.execute(HttpMethod.TRACE, url, params, null, options)
+    trace<D = any, R = Response<D>>(url: string, params: RequestParams = {}, options?: RequestOptions): CancelablePromise<R> {
+        return  this.execute(HttpMethod.TRACE, url, params, null, options)
     }
 
     // noinspection JSUnusedGlobalSymbols
-    async options<D>(url: string, params: RequestParams = {}, options?: RequestOptions): Promise<Response<D>> {
-        return await this.execute(HttpMethod.OPTIONS, url, params, null, options)
+    options<D = any, R = Response<D>>(url: string, params: RequestParams = {}, options?: RequestOptions): CancelablePromise<R> {
+        return  this.execute(HttpMethod.OPTIONS, url, params, null, options)
     }
 
-    async execute<D>(method: HttpMethod = HttpMethod.GET, url: string, params: RequestParams = {}, body?: any | null, options?: RequestOptions): Promise<Response<D>> {
+    execute<D = any, R = Response<D>>(method: HttpMethod = HttpMethod.GET, url: string, params: RequestParams = {}, body?: any | null, options?: RequestOptions): CancelablePromise<R> {
         const headersObject = options?.headers ?? {}
         const headers = new Headers()
         for (let headerKey in headersObject) {
@@ -136,54 +138,61 @@ export default class Fetcher {
         for (let requestInterceptor of this.requestInterceptors) {
             request = requestInterceptor(request)
         }
-        const fetchResponse = await fetch(request.url, request);
-        const status = fetchResponse.status
-        const responseType = options?.responseType;
-        let data: any
-        if (responseType != null) {
-            switch (responseType) {
-                case ResponseType.JSON:
-                    data = await fetchResponse.json()
-                    break;
-                case ResponseType.FORM_DATA:
-                    data = await fetchResponse.formData()
-                    break;
-                case ResponseType.TEXT:
-                    data = await fetchResponse.text()
-                    break;
-                case ResponseType.BLOB:
-                    data = await fetchResponse.blob()
-                    break;
-                case ResponseType.ARRAY_BUFFER:
-                    data = await fetchResponse.arrayBuffer()
-                    break;
-            }
-        } else if (fetchResponse.headers.get("Content-Type")?.includes("json")) {
-            data = await fetchResponse.json()
-        } else {
-            data = await fetchResponse.text()
-        }
-        if (fetchResponse.ok && status < 300 && status >= 200) {
-            const response = {
-                status,
-                data,
-                headers: fetchResponse.headers
-            };
-            for (let responseInterceptor of this.responseInterceptors) {
-                responseInterceptor(response)
-            }
-            return response
-        } else {
-            const errorResponse = {
-                status,
-                data,
-                headers: fetchResponse.headers
-            } as ErrorResponse;
-            for (let errorInterceptor of this.errorInterceptors) {
-                errorInterceptor(errorResponse)
-            }
-            throw errorResponse
-        }
+        return new CancelablePromise<R>((resolve, reject, onCancel) => {
+            onCancel(abortController.abort)
+            fetch(request.url, request).then(fetchResponse=>{
+                const status = fetchResponse.status
+                const responseType = options?.responseType;
+                let dataPromise: Promise<any>
+                if (responseType != null) {
+                    switch (responseType) {
+                        case ResponseType.JSON:
+                            dataPromise =  fetchResponse.json()
+                            break;
+                        case ResponseType.FORM_DATA:
+                            dataPromise =  fetchResponse.formData()
+                            break;
+                        case ResponseType.TEXT:
+                            dataPromise =  fetchResponse.text()
+                            break;
+                        case ResponseType.BLOB:
+                            dataPromise =  fetchResponse.blob()
+                            break;
+                        case ResponseType.ARRAY_BUFFER:
+                            dataPromise =  fetchResponse.arrayBuffer()
+                            break;
+                    }
+                } else if (fetchResponse.headers.get("Content-Type")?.includes("json")) {
+                    dataPromise =  fetchResponse.json()
+                } else {
+                    dataPromise =  fetchResponse.text()
+                }
+                dataPromise.then(data=>{
+                    if (fetchResponse.ok && status < 300 && status >= 200) {
+                        const response = {
+                            status,
+                            data: data,
+                            headers: fetchResponse.headers
+                        };
+                        for (let responseInterceptor of this.responseInterceptors) {
+                            responseInterceptor(response)
+                        }
+                        resolve(response as unknown as R)
+                    } else {
+                        const errorResponse = {
+                            status,
+                            data,
+                            headers: fetchResponse.headers
+                        } as ErrorResponse;
+                        for (let errorInterceptor of this.errorInterceptors) {
+                            errorInterceptor(errorResponse)
+                        }
+                        reject(errorResponse)
+                    }
+                }).catch(reject)
+            }).catch(reject)
+        })
+
     }
 
 }
