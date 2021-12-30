@@ -149,7 +149,7 @@ export default class Fetcher {
                 abortController.abort();
                 timeoutTimeout&&clearTimeout(timeoutTimeout)
             })
-            fetch(request.url, {...request,signal:abortController.signal}).then(fetchResponse => {
+            fetch(request.url, {...request,signal:abortController.signal,method}).then(fetchResponse => {
                 const status = fetchResponse.status
                 const responseType = options?.responseType;
                 let dataPromise: Promise<any>
