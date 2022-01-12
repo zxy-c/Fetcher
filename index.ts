@@ -118,6 +118,22 @@ export default class Fetcher {
                 }
             }
         }
+        function trySetContentType(contentType:string){
+            if (!headers.has("Content-Type")){
+                headers.set("Content-Type",contentType)
+            }
+        }
+
+        if (body){
+            if (body instanceof FormData){
+                trySetContentType("multipart/form-data")
+            }else {
+                trySetContentType("application/json")
+                if (typeof body !== "string"){
+                    body = JSON.stringify(body)
+                }
+            }
+        }
 
         const paramsSerializer = this.paramsSerializer;
         const timeout = options?.timeout ?? this.timeout;
