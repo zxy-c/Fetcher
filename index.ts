@@ -125,11 +125,9 @@ export default class Fetcher {
         }
 
         if (body){
-            if (body instanceof FormData){
-                trySetContentType("multipart/form-data")
-            }else {
+            if (!(body instanceof FormData)) {
                 trySetContentType("application/json")
-                if (typeof body !== "string"){
+                if (typeof body !== "string") {
                     body = JSON.stringify(body)
                 }
             }
